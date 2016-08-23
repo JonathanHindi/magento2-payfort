@@ -26,7 +26,7 @@ Install
 ## Compatibility
 
 
-Tested with [One Step Checkout by Mageplaza](https://www.mageplaza.com/magento-2-one-step-checkout-extension/)
+Tested with [One Step Checkout]
 
 ## Why Payfort?
 
