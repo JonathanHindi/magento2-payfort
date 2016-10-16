@@ -24,7 +24,7 @@
         <div class="pf-iframe-background" id="div-pf-iframe">
             <div class="pf-iframe-container">
                 <span class="pf-close-container">
-                    <i class="fa fa-times-circle pf-iframe-close" onclick="pfClosePopup()" style="display:none"></i>
+                    <i class="fa fa-times-circle pf-iframe-close" onclick="payfortFortMerchantPage.closePopup()" style="display:none"></i>
                 </span>
                 <i class="fa fa-spinner fa-spin pf-iframe-spin"></i>
                 <div class="pf-iframe" id="pf_iframe_content"></div>
@@ -38,10 +38,11 @@
         </form>
         <input type="hidden" id="payfort_cancel_url" value="<?php echo $block->getUrl('payfortfort/payment/merchantPageCancel')?>"/>
         <script type="text/javascript">
-            require(['jquery', 'merchantPage'],function($){
+            require(['jquery', 'payfort_fort'],function($){
                 'use strict';
                 $(document).ready(function () {
-                    showMerchantPage();
+                    var gatewayUrl = $('#payfort_payment_form').attr('action');
+                    payfortFortMerchantPage.showMerchantPage(gatewayUrl);
                 });
             });
         </script>

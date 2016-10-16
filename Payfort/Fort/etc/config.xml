@@ -25,6 +25,7 @@
                 <min_order_total>0</min_order_total>
                 <order_status>payfort_fort_new</order_status>
                 <order_status_on_fail>payfort_fort_failed</order_status_on_fail>
+                <gateway_currency>base</gateway_currency>
                 <group>payfort_fort</group>
             </payfort_fort>
             <payfort_fort_cc>

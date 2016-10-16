@@ -5,8 +5,7 @@ Payfort payment gateway Magento2 extension. Payfort is the Most Trusted Online P
 PAYFORT is here to help you accept online payments, reduce fraud, and maximize your revenue
 
 
-Install
-=======
+## Install
 
 1. Go to [Magento2 root folder]/app/code
 
@@ -22,6 +21,26 @@ Install
     ```
 4. Enable and configure Payfort in Magento Admin under Stores -> Configuration -> Sale -> Payment Methods -> PayFort Fort Payment Methods
 
+## Upgrade
+
+1. Go to [Magento2 root folder]/app/code.
+
+2. Past Payfort folder to the previous path.
+
+3. Go to Magento Admin Panel -> System -> Cache Management.
+
+4. Click on Flush Javascript/Css Cache.
+
+5. Click on Flush Static Files Cache.
+
+6. Click On Flush Magento Cache.
+
+## Changelog
+
+`v1.2.0`
+- Added option for Gateway currency.
+- Added merchant page 2.0
+- Fixing some bugs.
 
 ## Compatibility
 

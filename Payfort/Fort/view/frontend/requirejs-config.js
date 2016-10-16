@@ -1,12 +1,12 @@
 var config = {
     map: {
         '*': {
-            "merchantPage": 'Payfort_Fort/js/MerchantPage'
+            "payfort_fort": 'Payfort_Fort/js/payfort_fort'
         }
     },
     shim: {
         //dependency third-party lib
-        "merchantPage": {
+        "payfort_fort": {
              deps: [
                 'jquery' //dependency jquery will load first
             ]

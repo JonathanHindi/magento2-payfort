@@ -1,14 +1,8 @@
 <?php
 
-namespace Payfort\Fort\Block\Payment;
-
-use Magento\Customer\Model\Context;
-use Magento\Framework\Exception\LocalizedException;
+namespace Payfort\Fort\Controller\Payment;
 use Magento\Sales\Model\Order;
-//use Payfort\Fort\Model\Payment;
-use Payfort\Fort\Helper\Data;
-
-class Redirect extends \Magento\Framework\View\Element\Template
+class getPaymentData extends \Magento\Framework\App\Action\Action
 {
     /**
      * @var \Magento\Checkout\Model\Session
@@ -38,22 +32,20 @@ class Redirect extends \Magento\Framework\View\Element\Template
      */
     protected $_helper;
     
-    /**
-     * Path to template file in theme.
-     *
-     * @var string
-     */
-    protected $_template = 'redirect.phtml';
     
     /**
-     * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Sales\Model\Order\Config $orderConfig
-     * @param \Magento\Framework\App\Http\Context $httpContext
+     * @param \Magento\Framework\App\Action\Context $context,
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+     * @param \Magento\Checkout\Model\Session $checkoutSession,
+     * @param \Magento\Sales\Model\Order\Config $orderConfig,
+     * @param \Magento\Framework\App\Http\Context $httpContext,
+     * @param \Payfort\Fort\Model\Payment $payfortModel,
+     * @param \Payfort\Fort\Helper\Data $helperFort,
      * @param array $data
      */
     public function __construct(
-        \Magento\Framework\View\Element\Template\Context $context,
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Order\Config $orderConfig,
         \Magento\Framework\App\Http\Context $httpContext,
@@ -61,7 +53,7 @@ class Redirect extends \Magento\Framework\View\Element\Template
         \Payfort\Fort\Helper\Data $helperFort,
         array $data = []
     ) {
-        parent::__construct($context, $data);
+        parent::__construct($context);
         $this->_checkoutSession = $checkoutSession;
         $this->_orderConfig = $orderConfig;
         $this->_isScopePrivate = true;
@@ -71,24 +63,8 @@ class Redirect extends \Magento\Framework\View\Element\Template
 
         $this->_payfortModel = $payfortModel;
     }
-
-    /**
-     * Initialize data and prepare it for output
-     *
-     * @return string
-     */
-    protected function _beforeToHtml()
-    {
-        $this->prepareBlockData();
-        return parent::_beforeToHtml();
-    }
-
-    /**
-     * Prepares block data
-     *
-     * @return void
-     */
-    protected function prepareBlockData()
+    
+    public function execute()
     {
         $order_is_ok = true;
         $order_error_message = '';
@@ -111,8 +87,10 @@ class Redirect extends \Magento\Framework\View\Element\Template
         {
             $helper = $this->_helper;
             if($this->_helper->isMerchantPageMethod($order)) {
-                $this->_template = 'merchant-page.phtml';
                 $arrPaymentPageData = $this->_helper->getPaymentRequestParams($order, $helper::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE);
+            }
+            elseif($this->_helper->isMerchantPageMethod2($order)) {
+                $arrPaymentPageData = $this->_helper->getPaymentRequestParams($order, $helper::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE2);
             }
             else {
                 $arrPaymentPageData = $this->_helper->getPaymentRequestParams($order, $helper::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION);
@@ -127,41 +105,23 @@ class Redirect extends \Magento\Framework\View\Element\Template
 
             $order->save();
         }
-        
-        $this->addData(
-            [
-                'order_ok' => $order_is_ok,
-                'error_message' => $order_error_message,
-                'order_id'  => $order->getIncrementId(),
-                'form_data'  => $form_data,
-                'form_url'  => $form_url,
-            ]
+        else{
+            $result = array(
+                    'success' => false, 
+                    'error_message' => $order_error_message,
+            );
+            echo json_encode($result);
+            exit;
+        }
+        $result = array(
+            'success' => true,
+            'error_message' => $order_error_message,
+            'order_id'  => $order->getIncrementId(),
+            'params'  => $form_data,
+            'url'  => $form_url,
         );
+        echo json_encode($result);
+        exit;
     }
 
-    /**
-     * Is order visible
-     *
-     * @param Order $order
-     * @return bool
-     */
-    protected function isVisible(Order $order)
-    {
-        return !in_array(
-            $order->getStatus(),
-            $this->_orderConfig->getInvisibleOnFrontStatuses()
-        );
-    }
-
-    /**
-     * Can view order
-     *
-     * @param Order $order
-     * @return bool
-     */
-    protected function canViewOrder(Order $order)
-    {
-        return $this->httpContext->getValue(Context::CONTEXT_AUTH)
-            && $this->isVisible($order);
-    }
 }
