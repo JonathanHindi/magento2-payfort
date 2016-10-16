@@ -2,7 +2,7 @@
 
 namespace Payfort\Fort\Controller\Payment;
 
-class Response extends \Payfort\Fort\Controller\Checkout
+class ResponseOnline extends \Payfort\Fort\Controller\Checkout
 {
     public function execute()
     {
@@ -11,11 +11,7 @@ class Response extends \Payfort\Fort\Controller\Checkout
         $responseParams = $this->getRequest()->getParams();
         $helper = $this->getHelper();
         $integrationType = $helper::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION;
-        $paymentMethod = $order->getPayment()->getMethod();
-        if($paymentMethod == $helper::PAYFORT_FORT_PAYMENT_METHOD_CC) {
-            $integrationType = $helper->getConfig('payment/payfort_fort_cc/integration_type');
-        }
-        $success = $helper->handleFortResponse($responseParams, 'offline', $integrationType);
+        $success = $helper->handleFortResponse($responseParams, 'online', $integrationType);
         if ($success) {
             $returnUrl = $helper->getUrl('checkout/onepage/success');
         }

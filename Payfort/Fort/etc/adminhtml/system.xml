@@ -30,7 +30,7 @@
                     <field id="language" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                         <label>Langugae</label>
                         <source_model>Payfort\Fort\Model\Config\Source\Languageoptions</source_model>
-                        <config_path>payment/payfort_fort/Langugae</config_path>
+                        <config_path>payment/payfort_fort/language</config_path>
                     </field>
                     <field id="merchant_identifier" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                         <label>Merchant Identifier</label>
@@ -72,6 +72,12 @@
                         <comment>Testing or live mode.</comment>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <config_path>payment/payfort_fort/sandbox_mode</config_path>
+                    </field>
+                    <field id="gateway_currency" translate="label" type="select" sortOrder="91" showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>Gateway Currency</label>
+                        <comment>The currency that will be sent to the Fort</comment>
+                        <source_model>Payfort\Fort\Model\Config\Source\Gatewaycurrencyoptions</source_model>
+                        <config_path>payment/payfort_fort/gateway_currency</config_path>
                     </field>
                     <!--<field id="more_info" translate="label" type="text" sortOrder="170" showInDefault="1" showInWebsite="1" showInStore="0">
                         <label>More info</label>

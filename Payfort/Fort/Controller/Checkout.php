@@ -26,11 +26,6 @@ abstract class Checkout extends \Magento\Framework\App\Action\Action
     protected $_orderFactory;
 
     /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    protected $_logger;
-
-    /**
      * @var \Payfort\Fort\Helper\Data
      */
     protected $_helper;
@@ -69,14 +64,12 @@ abstract class Checkout extends \Magento\Framework\App\Action\Action
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Payfort\Fort\Model\Payment $payfortModel,
-        \Payfort\Fort\Helper\Data $helper,
-        \Psr\Log\LoggerInterface $logger
+        \Payfort\Fort\Helper\Data $helper    
     ) {
         $this->_pageFactory = $customerSession;
         $this->_customerSession = $customerSession;
         $this->_checkoutSession = $checkoutSession;
         $this->_orderFactory = $orderFactory;
-        $this->_logger = $logger;
         $this->_payfortModel = $payfortModel;
         $this->_helper = $helper;
         parent::__construct($context);

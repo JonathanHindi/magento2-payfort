@@ -11,18 +11,24 @@
 /*global define*/
 define(
     [
+        'jquery',
         'uiComponent',
-        'Magento_Checkout/js/model/payment/renderer-list'
+        'Magento_Checkout/js/model/payment/renderer-list',
+        'Magento_Checkout/js/action/select-payment-method',
+        'Magento_Checkout/js/checkout-data',
     ],
     function (
+        $,
         Component,
-        rendererList
+        rendererList,
+        selectPaymentMethodAction,
+        checkoutData
     ) {
         'use strict';
         rendererList.push(
             {
                 type: 'payfort_fort_cc',
-                component: 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_cc-method'
+                component: window.checkoutConfig.payment.payfortFort.payfort_fort_cc.integrationType == 'merchantPage2' ? 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_cc_merchant_page2-method' : 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_cc-method'
             },
             {
                 type: 'payfort_fort_sadad',
@@ -34,6 +40,21 @@ define(
             }
         );
         /** Add view logic here if needed */
-        return Component.extend({});
+        return Component.extend({
+            initialize : function() {
+                this._super();
+                if(window.checkoutConfig.payment.payfortFort.configParams.gatewayCurrency == 'front') {
+                    $(document).on('change', 'input[name="payment[method]"]', function (){
+                        if($(this).val() == 'payfort_fort_cc' || $(this).val() == 'payfort_fort_sadad' || $(this).val() == 'payfort_fort_naps' ) {
+                            $('.totals.charge').hide();
+                        }
+                        else {
+                            $('.totals.charge').show();
+                        }
+                    });
+                }
+                return true;
+            },
+        });
     }
 );

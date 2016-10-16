@@ -11,6 +11,7 @@
 /*global define*/
 define(
     [
+        'ko',
         'jquery',
         'Magento_Checkout/js/view/payment/default',
         'Magento_Checkout/js/model/quote',
@@ -18,7 +19,7 @@ define(
         'Magento_Checkout/js/action/set-payment-information',
         'Magento_Checkout/js/action/place-order',
     ],
-    function ($, Component, quote, fullScreenLoader, setPaymentInformationAction, placeOrder) {
+    function (ko, $, Component, quote, fullScreenLoader, setPaymentInformationAction, placeOrder) {
         'use strict';
         return Component.extend({
             defaults: {
@@ -39,28 +40,18 @@ define(
             // Overwrite properties / functions
             redirectAfterPlaceOrder: false,
             
-            /**
-             * @override
-             */
-            placeOrder: function () {
-
-                var self = this;
-                var paymentData = quote.paymentMethod();
-                var messageContainer = this.messageContainer;
-                fullScreenLoader.startLoader();
-                this.isPlaceOrderActionAllowed(false);
-                $.when(setPaymentInformationAction(this.messageContainer, {
-                    'method': self.getCode()
-                })).done(function () {
-                        $.when(placeOrder(paymentData, messageContainer)).done(function () {
-                            $.mage.redirect(window.checkoutConfig.payment.payfortFort.payfort_fort_cc.redirectUrl);
-                        });
-                }).fail(function () {
-                    self.isPlaceOrderActionAllowed(true);
-                }).always(function(){
-                    fullScreenLoader.stopLoader();
-                });
-            }
+            afterPlaceOrder : function() {
+                $.mage.redirect(window.checkoutConfig.payment.payfortFort.payfort_fort_cc.redirectUrl);
+            },
+            isChecked: ko.computed(function () {
+                var checked = quote.paymentMethod() ? quote.paymentMethod().method : null;
+                if(window.checkoutConfig.payment.payfortFort.configParams.gatewayCurrency == 'front') {
+                    if(checked) {
+                        $('.totals.charge').hide();
+                    }
+                }
+                return checked;
+            }),
         });
     }
 );

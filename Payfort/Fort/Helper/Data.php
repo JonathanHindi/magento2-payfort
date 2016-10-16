@@ -6,6 +6,7 @@
 namespace Payfort\Fort\Helper;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Api\OrderManagementInterface;
+
 /**
  * Payment module base helper
  */
@@ -52,6 +53,12 @@ class Data extends \Magento\Payment\Helper\Data
      */
     protected $_objectManager;
     
+    const PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION = 'redirection';
+    const PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE = 'merchantPage';
+    const PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE2 = 'merchantPage2';
+    const PAYFORT_FORT_PAYMENT_METHOD_CC = 'payfort_fort_cc';
+    const PAYFORT_FORT_PAYMENT_METHOD_NAPS = 'payfort_fort_naps';
+    const PAYFORT_FORT_PAYMENT_METHOD_SADAD = 'payfort_fort_sadad';
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Framework\View\LayoutFactory $layoutFactory,
@@ -63,13 +70,12 @@ class Data extends \Magento\Payment\Helper\Data
         \Magento\Checkout\Model\Session $session,
         OrderManagementInterface $orderManagement,
         \Magento\Framework\ObjectManagerInterface $objectManager,
-        \Psr\Log\LoggerInterface $logger,
         \Magento\Framework\Locale\ResolverInterface $localeResolver
     ) {
         parent::__construct($context,$layoutFactory, $paymentMethodFactory, $appEmulation, $paymentConfig, $initialConfig);
         $this->_storeManager = $storeManager;
         $this->session = $session;
-        $this->_logger = $logger;
+        $this->_logger = $context->getLogger();
         $this->_localeResolver = $localeResolver;
         $this->orderManagement = $orderManagement;
         $this->_objectManager = $objectManager;
@@ -95,37 +101,53 @@ class Data extends \Magento\Payment\Helper\Data
         );
     }
     
-    public function getPaymentPageRedirectData($order) {
+    public function getPaymentRequestParams($order, $integrationType = self::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION)
+    {
         $paymentMethod = $order->getPayment()->getMethod();
-        $orderId = $order->getRealOrderId();
-        $currency = $order->getOrderCurrency()->getCurrencyCode();
-        $amount = $this->convertFortAmount($order->getGrandTotal(), $currency);
+        $orderId = $order->getRealOrderId();        
         $language = $this->getLanguage();
+
         $gatewayParams = array(
-            'amount'              => $amount,
-            'currency'            => strtoupper($currency),
             'merchant_identifier' => $this->getMainConfigData('merchant_identifier'),
             'access_code'         => $this->getMainConfigData('access_code'),
             'merchant_reference'  => $orderId,
-            'customer_email'      => trim( $order->getCustomerEmail() ),
-            'command'             => $this->getMainConfigData('command'),
             'language'            => $language,
-            'return_url'          => $this->getReturnUrl('payfortfort/payment/response')
         );
-        if($paymentMethod == \Payfort\Fort\Model\Method\Sadad::CODE) {
-            $gatewayParams['payment_option'] = 'SADAD';
+        if ($integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION) {
+            $baseCurrency                    = $this->getBaseCurrency();
+            $orderCurrency                   = $order->getOrderCurrency()->getCurrencyCode();
+            $currency                        = $this->getFortCurrency($baseCurrency, $orderCurrency);
+            $amount                          = $this->convertFortAmount($order, $currency);
+            $gatewayParams['currency']       = strtoupper($currency);
+            $gatewayParams['amount']         = $amount;
+            $gatewayParams['customer_email'] = trim( $order->getCustomerEmail() );
+            $gatewayParams['command']        = $this->getMainConfigData('command');
+            $gatewayParams['return_url']     = $this->getReturnUrl('payfortfort/payment/responseOnline');
+            if ($paymentMethod == self::PAYFORT_FORT_PAYMENT_METHOD_SADAD) {
+                $gatewayParams['payment_option'] = 'SADAD';
+            }
+            elseif ($paymentMethod == self::PAYFORT_FORT_PAYMENT_METHOD_NAPS) {
+                $gatewayParams['payment_option']    = 'NAPS';
+                $gatewayParams['order_description'] = $orderId;
+            }
         }
-        elseif ($paymentMethod == \Payfort\Fort\Model\Method\Naps::CODE)
-        {
-            $gatewayParams['payment_option']    = 'NAPS';
-            $gatewayParams['order_description'] = $orderId;
+        elseif ($integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE || $integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE2) {
+            $gatewayParams['service_command'] = 'TOKENIZATION';
+            $gatewayParams['return_url']      = $this->getReturnUrl('payfortfort/payment/merchantPageResponse');
         }
-        $gatewayParams['signature'] = $this->calculateSignature($gatewayParams, 'request');
-        $gatewayUrl = $this->getGatewayUrl('redirection');
+        $signature                  = $this->calculateSignature($gatewayParams, 'request');
+        $gatewayParams['signature'] = $signature;
+
+        $gatewayUrl = $this->getGatewayUrl();
         
-        $debugMsg = "Fort Redirect Request Parameters \n".print_r($gatewayParams, 1);
-        $this->log($debugMsg);
+        $this->log("Payfort Request Params for payment method ($paymentMethod) \n\n" . print_r($gatewayParams, 1));
+        
         return array('url' => $gatewayUrl, 'params' => $gatewayParams);
+    }
+    
+    public function getPaymentPageRedirectData($order) {
+        
+        return $this->getPaymentRequestParams($order, self::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION);
     }
     
     public function getOrderCustomerName($order) {
@@ -138,28 +160,6 @@ class Data extends \Magento\Payment\Helper\Data
         }
         return trim($customerName);
     }
-    public function getMerchantPageData($order) {
-            $language = $this->getLanguage();
-            $orderId = $order->getRealOrderId();
-            $gatewayParams = array(
-                'merchant_identifier' => $this->getMainConfigData('merchant_identifier'),
-                'access_code'         => $this->getMainConfigData('access_code'),
-                'merchant_reference'  => $orderId,
-                'service_command'     => 'TOKENIZATION',
-                'language'            => $language,
-                'return_url'          => $this->getReturnUrl('payfortfort/payment/merchantPageResponse'),
-            );
-            //calculate request signature
-            $signature = $this->calculateSignature($gatewayParams, 'request');
-            $gatewayParams['signature'] = $signature;
-            
-            $gatewayUrl = $this->getGatewayUrl();
-            
-            $debugMsg = "Fort Merchant Page Request Parameters \n".print_r($gatewayParams, true);
-            $this->log($debugMsg);
-        
-            return array('url' => $gatewayUrl, 'params' => $gatewayParams);
-    }
     
     public function isMerchantPageMethod($order) {
         $paymentMethod = $order->getPayment()->getMethod();
@@ -169,16 +169,26 @@ class Data extends \Magento\Payment\Helper\Data
         return false;
     }
     
-    public function merchantPageNotifyFort($order, $fortParams) {
+    public function isMerchantPageMethod2($order) {
+        $paymentMethod = $order->getPayment()->getMethod();
+        if($paymentMethod == \Payfort\Fort\Model\Method\Cc::CODE && $this->getConfig('payment/payfort_fort_cc/integration_type') == \Payfort\Fort\Model\Config\Source\Integrationtypeoptions::MERCHANT_PAGE2) {
+            return true;
+        }
+        return false;
+    }
+    
+    public function merchantPageNotifyFort($fortParams, $order) {
         //send host to host
-        $language = $this->getLanguage();
         $orderId = $order->getRealOrderId();
 
-        $return_url = $this->getReturnUrl('payfortfort/payment/response');
+        $return_url = $this->getReturnUrl('payfortfort/payment/responseOnline');
 
         $ip = $this->getVisitorIp();
-        $currency = $order->getOrderCurrency()->getCurrencyCode();
-        $amount = $this->convertFortAmount($order->getGrandTotal(), $currency);
+        $baseCurrency  = $this->getBaseCurrency();
+        $orderCurrency = $order->getOrderCurrency()->getCurrencyCode();
+        $currency      = $this->getFortCurrency($baseCurrency, $orderCurrency);
+        $amount        = $this->convertFortAmount($order, $currency);
+        $language      = $this->getLanguage();
         $postData = array(
             'merchant_reference'    => $orderId,
             'access_code'           => $this->getMainConfigData('access_code'),
@@ -199,11 +209,21 @@ class Data extends \Magento\Payment\Helper\Data
         //calculate request signature
         $signature = $this->calculateSignature($postData, 'request');
         $postData['signature'] = $signature;
+       
+        $gatewayUrl = $this->getGatewayUrl('notificationApi');
         
-        $debugMsg = "Fort Merchant Page Notifiaction Request Parameters \n".print_r($postData, true);
+        $this->log('Merchant Page Notify Api Request Params : ' . print_r($postData, 1));
+        
+        $response = $this->callApi($postData, $gatewayUrl);
+
+        $debugMsg = 'Fort Merchant Page Notifiaction Response Parameters'."\n".print_r($response, true);
         $this->log($debugMsg);
         
-        $gatewayUrl = $this->getGatewayUrl('notificationApi');
+        return $response;
+    }
+
+    public function callApi($postData, $gatewayUrl)
+    {
         //open connection
         $ch = curl_init();
 
@@ -230,22 +250,16 @@ class Data extends \Magento\Payment\Helper\Data
 
         $response = curl_exec($ch);
 
-        //$response_data = array();
-
-        //parse_str($response, $response_data);
         curl_close($ch);
 
-        $array_result    = json_decode($response, true);
+        $array_result = json_decode($response, true);
 
-        $debugMsg = 'Fort Merchant Page Notifiaction Response Parameters'."\n".print_r($array_result, true);
-        $this->log($debugMsg);
-            
-        if(!$response || empty($array_result)) {
+        if (!$response || empty($array_result)) {
             return false;
         }
         return $array_result;
     }
-
+    
     /** @return string */
     function getVisitorIp() {
             /** @var \Magento\Framework\ObjectManagerInterface $om */
@@ -288,15 +302,21 @@ class Data extends \Magento\Payment\Helper\Data
     
     /**
      * Convert Amount with dicemal points
-     * @param decimal $amount
-     * @param string $baseCurrencyCode
-     * @param string  $currentCurrencyCode
+     * @param object $order
+     * @param string  $currencyCode
      * @return decimal
      */
-    public function convertFortAmount($amount, $currencyCode)
+    public function convertFortAmount($order, $currencyCode)
     {
-
+        $gateway_currency = $this->getGatewayCurrency();
         $new_amount     = 0;
+        
+        if($gateway_currency == 'front') {
+            $amount = $order->getGrandTotal();
+        }
+        else {
+            $amount = $order->getBaseGrandTotal();
+        }
         $decimal_points = $this->getCurrencyDecimalPoint($currencyCode);
         $new_amount     = round($amount, $decimal_points);
         $new_amount     = $new_amount * (pow(10, $decimal_points));
@@ -324,6 +344,34 @@ class Data extends \Magento\Payment\Helper\Data
             $decimalPoint = $arrCurrencies[$currency];
         }
         return $decimalPoint;
+    }
+    public function getGatewayCurrency()
+    {
+        $gatewayCurrency = $this->getMainConfigData('gateway_currency');
+        if(empty($gatewayCurrency)) {
+            $gatewayCurrency = 'base';
+        }
+        return $gatewayCurrency;
+    }
+    
+    public function getBaseCurrency()
+    {
+        return $this->_storeManager->getStore()->getBaseCurrencyCode();
+    }
+    
+    public function getFrontCurrency()
+    {
+        return $this->_storeManager->getStore()->getCurrentCurrencyCode();
+    }
+    
+    public function getFortCurrency($baseCurrencyCode, $currentCurrencyCode)
+    {
+        $gateway_currency = $this->getMainConfigData('gateway_currency');
+        $currencyCode     = $baseCurrencyCode;
+        if ($gateway_currency == 'front') {
+            $currencyCode = $currentCurrencyCode;
+        }
+        return $currencyCode;
     }
     
     public function getGatewayUrl($type='redirection') {
@@ -408,13 +456,13 @@ class Data extends \Magento\Payment\Helper\Data
         return $gotoSection;
     }
     
-    public function orderFailed($order) {
+    public function orderFailed($order, $reason) {
         if ($order->getState() != $this->getMainConfigData('order_status_on_fail')) {
             $order->setStatus($this->getMainConfigData('order_status_on_fail'));
             $order->setState($this->getMainConfigData('order_status_on_fail'));
             $order->save();
-            $customerNotified = $this->sendOrderEmail($order);
-            $order->addStatusToHistory( $this->getMainConfigData('order_status_on_fail') , 'Payfort_Fort :: payment has failed.', $customerNotified );
+            //$customerNotified = $this->sendOrderEmail($order);
+            $order->addStatusToHistory( $this->getMainConfigData('order_status_on_fail') , $reason, false );
             $order->save();
             return true;
         }
@@ -460,40 +508,156 @@ class Data extends \Magento\Payment\Helper\Data
         return $this->_getUrl($route, $params);
     }
     
-    public function validateResponse($responseData)
+    /**
+     * Get order object
+     *
+     * @return \Magento\Sales\Model\Order
+     */
+    protected function getOrderById($order_id)
     {
-        $debugMsg = "Response Parameters \n".print_r($responseData, 1);
-        $this->log($debugMsg);
-        if(empty($responseData)) {
-            $this->log('Invalid Response Parameters');
-            return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_FAILED;
-        }
-        
-        $responseSignature = $responseData['signature'];
-        $responseGatewayParams = $responseData;
-        unset($responseGatewayParams['signature']);
-        $calculatedSignature = $this->calculateSignature($responseGatewayParams, 'response'); 
-        if($responseSignature != $calculatedSignature) {
-            $this->log(sprintf('Invalid Signature. Calculated Signature: %1s, Response Signature: %2s', $responseSignature, $calculatedSignature));
-            return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_FAILED;
-        }
-        $response_code = $responseData['response_code'];
-        $response_msg  = $responseData['response_message'];
-        if (substr($response_code, 2) != '000') {
-            if($response_code == \Payfort\Fort\Model\Payment::PAYMENT_STATUS_CANCELED) {
-                $this->log(sprintf('User has cancle the payment, Response Code (%1s), Response Message (%2s)', $response_code, $response_msg));
-                return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_CANCELED;
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $order = $objectManager->get('Magento\Sales\Model\Order');
+        $order_info = $order->loadByIncrementId($order_id);
+        return $order_info;
+    }
+    
+    /**
+     * 
+     * @param array  $fortParams
+     * @param string $responseMode (online, offline)
+     * @retrun boolean
+     */
+    public function handleFortResponse($fortParams = array(), $responseMode = 'online', $integrationType = self::PAYFORT_FORT_INTEGRATION_TYPE_REDIRECTION, $responseSource = '')
+    {
+        try {
+            $responseParams  = $fortParams;
+            $success         = false;
+            $responseMessage = __('error_transaction_error_1');
+            //$this->session->data['error'] = __('text_payment_failed').$params['response_message'];
+            if (empty($responseParams)) {
+                $this->log('Invalid fort response parameters (' . $responseMode . ')');
+                throw new \Exception($responseMessage);
             }
-            elseif($response_code == \Payfort\Fort\Model\Payment::PAYMENT_STATUS_3DS_CHECK) {
-                return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_3DS_CHECK;
+
+            if (!isset($responseParams['merchant_reference']) || empty($responseParams['merchant_reference'])) {
+                $this->log("Invalid fort response parameters. merchant_reference not found ($responseMode) \n\n" . print_r($responseParams, 1));
+                throw new \Exception($responseMessage);
+            }
+
+            $orderId = $fortParams['merchant_reference'];
+            $order = $this->getOrderById($orderId);
+
+            $paymentMethod = $order->getPayment()->getMethod();
+            $this->log("Fort response parameters ($responseMode) for payment method ($paymentMethod) \n\n" . print_r($responseParams, 1));
+
+            $notIncludedParams = array('signature', 'payfort_fort', 'integration_type');
+
+            $responseType          = $responseParams['response_message'];
+            $signature             = $responseParams['signature'];
+            $responseOrderId       = $responseParams['merchant_reference'];
+            $responseStatus        = isset($responseParams['status']) ? $responseParams['status'] : '';
+            $responseCode          = isset($responseParams['response_code']) ? $responseParams['response_code'] : '';
+            $responseStatusMessage = $responseType;
+
+            $responseGatewayParams = $responseParams;
+            foreach ($responseGatewayParams as $k => $v) {
+                if (in_array($k, $notIncludedParams)) {
+                    unset($responseGatewayParams[$k]);
+                }
+            }
+            $responseSignature = $this->calculateSignature($responseGatewayParams, 'response');
+            // check the signature
+            if (strtolower($responseSignature) !== strtolower($signature)) {
+                $responseMessage = __('error_invalid_signature');
+                $this->log(sprintf('Invalid Signature. Calculated Signature: %1s, Response Signature: %2s', $signature, $responseSignature));
+                // There is a problem in the response we got
+                if ($responseMode == 'offline') {
+                    $r = $this->orderFailed($order, 'Invalid Signature.');
+                    if ($r) {
+                        throw new \Exception($responseMessage);
+                    }
+                }
+                else {
+                    throw new \Exception($responseMessage);
+                }
+            }
+            if (empty($responseCode)) {
+                //get order status
+                $orderStaus = $order->getState();
+                if ($orderStaus == $order::STATE_PROCESSING) {
+                    $responseCode   = '00000';
+                    $responseStatus = '02';
+                }
+                else {
+                    $responseCode   = 'failed';
+                    $responseStatus = '10';
+                }
+            }
+
+            if ($responseSource == 'h2h') {
+                if ($responseCode == \Payfort\Fort\Model\Payment::PAYMENT_STATUS_3DS_CHECK && isset($responseParams['3ds_url'])) {
+                    if($integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE) {
+                        echo '<script>window.top.location.href = "'.$responseParams['3ds_url'].'"</script>';
+                        exit;
+                    }
+                    else{
+                        header('location:' . $responseParams['3ds_url']);
+                        exit;
+                    }
+                }
+            }
+            if (substr($responseCode, 2) != '000') {
+                if ($responseCode == \Payfort\Fort\Model\Payment::PAYMENT_STATUS_CANCELED) {
+                    $responseMessage = __('text_payment_canceled');
+                    if ($responseMode == 'offline') {
+                        $r = $this->cancelOrder($order, 'Payment Cancelled');
+                        if ($r) {
+                            throw new \Exception($responseMessage);
+                        }
+                    }
+                    else {
+                        throw new \Exception($responseMessage);
+                    }
+                }
+                $responseMessage = sprintf(__('error_transaction_error_2'), $responseStatusMessage);
+                if ($responseMode == 'offline') {
+                    $r = $this->orderFailed($order, $responseStatusMessage);
+                    if ($r) {
+                        throw new \Exception($responseMessage);
+                    }
+                }
+                else {
+                    throw new \Exception($responseMessage);
+                }
+            }
+            if (substr($responseCode, 2) == '000') {
+                if ($responseMode == 'online' && $paymentMethod == self::PAYFORT_FORT_PAYMENT_METHOD_CC && ($integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE || $integrationType == self::PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE2)) {
+                    $host2HostParams = $this->merchantPageNotifyFort($responseParams, $order);
+                    return $this->handleFortResponse($host2HostParams, 'online', $integrationType, 'h2h');
+                }
+                else { //success order
+                    $this->processOrder($order);
+                }
             }
             else {
-                $this->log(sprintf('Gateway error: Response Code (%1s), Response Message (%2s)', $response_code, $response_msg));
-                return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_FAILED;
+                $responseMessage = sprintf(__('error_transaction_error_2'), __('error_response_unknown'));
+                if ($responseMode == 'offline') {
+                    $r = $this->orderFailed($order, 'Unknown Response');
+                    if ($r) {
+                        throw new \Exception($responseMessage);
+                    }
+                }
+                else {
+                    throw new \Exception($responseMessage);
+                }
             }
-            
+        } catch (\Exception $e) {
+            $this->restoreQuote();
+            $messageManager = $this->_objectManager->get('Magento\Framework\Message\Manager');
+            $messageManager->addError( $e->getMessage() );
+            return false;
         }
-        return \Payfort\Fort\Model\Payment::PAYMENT_STATUS_SUCCESS;
+        return true;
     }
     
     /**

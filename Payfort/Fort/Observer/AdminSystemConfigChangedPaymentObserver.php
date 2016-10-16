@@ -48,6 +48,7 @@ class AdminSystemConfigChangedPaymentObserver implements ObserverInterface
             'command',
             'debug',
             'sandbox_mode',
+            'gateway_currency',
             'allowspecific',
             'specificcountry',
             'min_order_total',
