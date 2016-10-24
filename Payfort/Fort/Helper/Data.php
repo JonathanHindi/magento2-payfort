@@ -200,6 +200,7 @@ class Data extends \Magento\Payment\Helper\Data
             'customer_email'        => trim( $order->getCustomerEmail() ),
             'token_name'            => $fortParams['token_name'],
             'language'              => $language,
+            'remember_me'           => 'NO',
             'return_url'            => $return_url,
         );
         $customer_name = $this->getOrderCustomerName($order);
