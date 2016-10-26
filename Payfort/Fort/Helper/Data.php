@@ -533,7 +533,7 @@ class Data extends \Magento\Payment\Helper\Data
         try {
             $responseParams  = $fortParams;
             $success         = false;
-            $responseMessage = __('error_transaction_error_1');
+            $responseMessage = __('You have canceled the payment, please try again.');
             //$this->session->data['error'] = __('text_payment_failed').$params['response_message'];
             if (empty($responseParams)) {
                 $this->log('Invalid fort response parameters (' . $responseMode . ')');
@@ -569,7 +569,7 @@ class Data extends \Magento\Payment\Helper\Data
             $responseSignature = $this->calculateSignature($responseGatewayParams, 'response');
             // check the signature
             if (strtolower($responseSignature) !== strtolower($signature)) {
-                $responseMessage = __('error_invalid_signature');
+                $responseMessage = __('Invalid response signature.');
                 $this->log(sprintf('Invalid Signature. Calculated Signature: %1s, Response Signature: %2s', $signature, $responseSignature));
                 // There is a problem in the response we got
                 if ($responseMode == 'offline') {
@@ -609,7 +609,7 @@ class Data extends \Magento\Payment\Helper\Data
             }
             if (substr($responseCode, 2) != '000') {
                 if ($responseCode == \Payfort\Fort\Model\Payment::PAYMENT_STATUS_CANCELED) {
-                    $responseMessage = __('text_payment_canceled');
+                    $responseMessage = __('You have canceled the payment, please try again.');
                     if ($responseMode == 'offline') {
                         $r = $this->cancelOrder($order, 'Payment Cancelled');
                         if ($r) {
@@ -620,7 +620,7 @@ class Data extends \Magento\Payment\Helper\Data
                         throw new \Exception($responseMessage);
                     }
                 }
-                $responseMessage = sprintf(__('error_transaction_error_2'), $responseStatusMessage);
+                $responseMessage = sprintf(__('An error occurred while making the transaction. Please try again. (Error message: %s)'), $responseStatusMessage);
                 if ($responseMode == 'offline') {
                     $r = $this->orderFailed($order, $responseStatusMessage);
                     if ($r) {
@@ -641,7 +641,7 @@ class Data extends \Magento\Payment\Helper\Data
                 }
             }
             else {
-                $responseMessage = sprintf(__('error_transaction_error_2'), __('error_response_unknown'));
+                $responseMessage = sprintf(__('An error occurred while making the transaction. Please try again. (Error message: %s)'), __('Response Unknown'));
                 if ($responseMode == 'offline') {
                     $r = $this->orderFailed($order, 'Unknown Response');
                     if ($r) {
