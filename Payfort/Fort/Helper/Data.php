@@ -378,7 +378,7 @@ class Data extends \Magento\Payment\Helper\Data
     public function getGatewayUrl($type='redirection') {
         $testMode = $this->getMainConfigData('sandbox_mode');
         if($type == 'notificationApi') {
-            $gatewayUrl = $testMode ? $this->_gatewaySandboxHost.'FortAPI/paymentApi' : $this->_gatewayHost.'FortAPI/paymentApi';
+            $gatewayUrl = $testMode ?  'https://sbpaymentservices.payfort.com/FortAPI/paymentApi' :  'https://paymentservices.payfort.com/FortAPI/paymentApi';
         }
         else{
             $gatewayUrl = $testMode ? $this->_gatewaySandboxHost.'FortAPI/paymentPage' : $this->_gatewayHost.'FortAPI/paymentPage';
