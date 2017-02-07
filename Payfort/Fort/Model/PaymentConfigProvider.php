@@ -16,7 +16,8 @@ class PaymentConfigProvider implements ConfigProviderInterface
     protected $methodCodes = [
         \Payfort\Fort\Model\Method\Cc::CODE,
         \Payfort\Fort\Model\Method\Sadad::CODE,
-        \Payfort\Fort\Model\Method\Naps::CODE
+        \Payfort\Fort\Model\Method\Naps::CODE,
+        \Payfort\Fort\Model\Method\Installments::CODE
     ];
 
     /**
