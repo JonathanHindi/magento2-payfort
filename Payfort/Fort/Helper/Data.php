@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2015 Magento. All rights reserved.
+ * Copyright ÂŠ 2015 Magento. All rights reserved.
  * See COPYING.txt for license details.
  */
 namespace Payfort\Fort\Helper;
@@ -57,6 +57,7 @@ class Data extends \Magento\Payment\Helper\Data
     const PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE = 'merchantPage';
     const PAYFORT_FORT_INTEGRATION_TYPE_MERCAHNT_PAGE2 = 'merchantPage2';
     const PAYFORT_FORT_PAYMENT_METHOD_CC = 'payfort_fort_cc';
+    const PAYFORT_FORT_PAYMENT_METHOD_INSTALLMENTS = 'payfort_fort_installments';
     const PAYFORT_FORT_PAYMENT_METHOD_NAPS = 'payfort_fort_naps';
     const PAYFORT_FORT_PAYMENT_METHOD_SADAD = 'payfort_fort_sadad';
     public function __construct(
@@ -135,6 +136,15 @@ class Data extends \Magento\Payment\Helper\Data
             $gatewayParams['service_command'] = 'TOKENIZATION';
             $gatewayParams['return_url']      = $this->getReturnUrl('payfortfort/payment/merchantPageResponse');
         }
+
+        // Installments Service
+        if($paymentMethod == self::PAYFORT_FORT_PAYMENT_METHOD_INSTALLMENTS) {
+            $gatewayParams['installments'] = 'STANDALONE';
+            // Command should always be purchase for installments (Payfort API Requirment)
+            // no matter what is the value in config
+            $gatewayParams['command'] = \Payfort\Fort\Model\Config\Source\Commandoptions::PURCHASE;
+        }
+
         $signature                  = $this->calculateSignature($gatewayParams, 'request');
         $gatewayParams['signature'] = $signature;
 
@@ -243,7 +253,7 @@ class Data extends \Magento\Payment\Helper\Data
         curl_setopt($ch, CURLOPT_ENCODING, "compress, gzip");
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1); // allow redirects		
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1); // allow redirects     
         //curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // return into a variable
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0); // The number of seconds to wait while trying to connect
         //curl_setopt($ch, CURLOPT_TIMEOUT, Yii::app()->params['apiCallTimeout']); // timeout in seconds
