@@ -66,6 +66,7 @@ class AdminSystemConfigChangedPaymentObserver implements ObserverInterface
     
     protected function savaCommonConfig($configKey, $configValue, $scope, $scopeId) {
         $this->_resourceConfig->saveConfig('payment/payfort_fort_cc/'.$configKey, $configValue, $scope, $scopeId);
+        $this->_resourceConfig->saveConfig('payment/payfort_fort_installments/'.$configKey, $configValue, $scope, $scopeId);
         $this->_resourceConfig->saveConfig('payment/payfort_fort_naps/'.$configKey, $configValue, $scope, $scopeId);
         $this->_resourceConfig->saveConfig('payment/payfort_fort_sadad/'.$configKey, $configValue, $scope, $scopeId);
     }
