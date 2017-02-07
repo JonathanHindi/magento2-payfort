@@ -49,7 +49,7 @@ define(
                 this._super();
                 if(window.checkoutConfig.payment.payfortFort.configParams.gatewayCurrency == 'front') {
                     $(document).on('change', 'input[name="payment[method]"]', function (){
-                        if($(this).val() == 'payfort_fort_cc' || $(this).val() == 'payfort_fort_sadad' || $(this).val() == 'payfort_fort_naps' ) {
+                        if($(this).val() == 'payfort_fort_cc' || $(this).val() == 'payfort_fort_installments' || $(this).val() == 'payfort_fort_sadad' || $(this).val() == 'payfort_fort_naps' ) {
                             $('.totals.charge').hide();
                         }
                         else {
