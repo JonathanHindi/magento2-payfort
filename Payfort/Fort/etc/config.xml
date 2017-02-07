@@ -37,6 +37,15 @@
                 <group>payfort_fort</group>
                 <!--<instructions>You will be redirected to the Payfort website when you place an order.</instructions>-->
             </payfort_fort_cc>
+            <payfort_fort_installments>
+                <model>Payfort\Fort\Model\Method\Installments</model>
+                <active>0</active>
+                <title>Installments with Credit / Debit Cards</title>
+                <integration_type>redirection</integration_type>
+                <order_status>payfort_fort_new</order_status>
+                <group>payfort_fort</group>
+                <!--<instructions>You will be redirected to the Payfort website when you place an order.</instructions>-->
+            </payfort_fort_installments>
             <payfort_fort_sadad>
                 <model>Payfort\Fort\Model\Method\Sadad</model>
                 <active>0</active>

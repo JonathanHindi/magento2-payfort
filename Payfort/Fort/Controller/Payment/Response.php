@@ -15,6 +15,10 @@ class Response extends \Payfort\Fort\Controller\Checkout
         if($paymentMethod == $helper::PAYFORT_FORT_PAYMENT_METHOD_CC) {
             $integrationType = $helper->getConfig('payment/payfort_fort_cc/integration_type');
         }
+
+        if($paymentMethod == $helper::PAYFORT_FORT_PAYMENT_METHOD_INSTALLMENTS) {
+            $integrationType = $helper->getConfig('payment/payfort_fort_installments/integration_type');
+        }
         $success = $helper->handleFortResponse($responseParams, 'offline', $integrationType);
         if ($success) {
             $returnUrl = $helper->getUrl('checkout/onepage/success');

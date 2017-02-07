@@ -143,6 +143,20 @@
                         <label>Instructions</label>
                     </field>-->
                 </group>
+                <group id="payfort_fort_installments" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>PayFort Installment Service</label>
+                    <comment>Installments Services by Payfort - Only works with Merchant Page 1 Integration Type</comment>
+                    <field id="active" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>Enable</label>
+                        <comment>Enable or Disable Installments Services by Payfort - Should be enabled in your payfort account first.</comment>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/payfort_fort_installments/active</config_path>
+                    </field>
+                    <field id="title" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Title</label>
+                        <config_path>payment/payfort_fort_installments/title</config_path>
+                    </field>
+                </group>
                 <group id="payfort_fort_sadad" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>PayFort Sadad Payment Method</label>
                     <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
