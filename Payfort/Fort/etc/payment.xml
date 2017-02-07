@@ -20,6 +20,9 @@
         <method name="payfort_fort_cc">
             <allow_multiple_address>0</allow_multiple_address>
         </method>
+        <method name="payfort_fort_installments">
+            <allow_multiple_address>0</allow_multiple_address>
+        </method>
         <method name="payfort_fort_sadad">
             <allow_multiple_address>0</allow_multiple_address>
         </method>
