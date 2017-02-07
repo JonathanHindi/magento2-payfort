@@ -31,6 +31,10 @@ define(
                 component: window.checkoutConfig.payment.payfortFort.payfort_fort_cc.integrationType == 'merchantPage2' ? 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_cc_merchant_page2-method' : 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_cc-method'
             },
             {
+                type: 'payfort_fort_installments',
+                component: 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_installments-method'
+            },
+            {
                 type: 'payfort_fort_sadad',
                 component: 'Payfort_Fort/js/view/payment/method-renderer/payfort_fort_sadad-method'
             },
